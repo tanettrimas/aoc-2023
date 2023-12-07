@@ -3,12 +3,13 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use crate::day1::find_calibration;
+use crate::day2::{Bag, Color, Cube, Game};
 
 mod day1;
 mod day2;
 
 fn main() {
-    day1().expect("Something went wrong");
+    day2().expect("Something went wrong");
 }
 
 fn get_path(day: i32) -> PathBuf {
@@ -34,6 +35,30 @@ fn day1() -> io::Result<()> {
     Ok(())
 }
 
-fn day2() {
+fn day2() -> io::Result<()> {
+    let configuration_cubes = Vec::from([
+        Cube::new(12, Color::Red),
+        Cube::new(13, Color::Green),
+        Cube::new(14, Color::Blue)
+    ]);
 
+    let bag = Bag::with_cubes(configuration_cubes);
+
+
+    let path = get_path(2);
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+    let mut sum: i32 = 0;
+    reader.lines().for_each(|line_result| {
+        let line = line_result.unwrap();
+        let game = Game::parse(&bag, line);
+        match game.is_playable() {
+            true => {
+                sum += game.id as i32
+            }
+            false => {}
+        }
+    });
+    println!("Possible games: {}", sum);
+    Ok(())
 }
