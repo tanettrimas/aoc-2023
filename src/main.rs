@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use crate::day1::find_calibration;
 
 mod day1;
+mod day2;
 
 fn main() {
     day1().expect("Something went wrong");
@@ -31,4 +32,8 @@ fn day1() -> io::Result<()> {
         }).sum();
     println!("All calibrations: {}", sum);
     Ok(())
+}
+
+fn day2() {
+
 }
