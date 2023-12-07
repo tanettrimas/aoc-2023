@@ -1,14 +1,48 @@
 use std::collections::HashMap;
-use rand::seq::SliceRandom; // 0.7.2
+use crate::day2::Color::{Blue, Green, Red}; // 0.7.2
 
 
-struct Game {
+struct Game<'a> {
     id: u8,
+    bag: &'a Bag,
+    subsets: Vec<Cube>,
 }
 
-impl Game {
-    fn possible(bag: &Bag, subsets: Vec<Cube>) -> bool {
-        bag.contains_all(subsets)
+impl<'a> Game<'a> {
+    fn possible(&self, subsets: &Vec<Cube>) -> bool {
+        self.bag.contains_all(&subsets)
+    }
+
+    fn parse(bag: &'a Bag, line: &str) -> Self {
+        let splits: Vec<_> = line.split(":").collect();
+        let metadata = *splits.get(0).expect("Missing a : separator");
+        let subset_string = *splits.get(1).expect("Missing a : separator");
+
+        let id = metadata
+            .chars()
+            .last()
+            .map(|val| val.to_digit(10).expect("Should be a digit in the metadata"))
+            .expect("Should be a parseable number");
+
+        let subsets: Vec<_> = subset_string.split(";").flat_map(|set| {
+            set.split(",").map(|entry| {
+                let chunk: Vec<_> = entry.trim().split(" ").collect();
+                let color = chunk.last().expect("Color missing in input");
+                let amount = chunk.first().expect("Amount missing in input").parse::<usize>().expect("Amount is not parseable");
+                Cube(Color::from(color), amount)
+            })
+        }).collect();
+
+
+        Self {
+            id: id as u8,
+            bag: &bag,
+            subsets,
+        }
+    }
+
+    pub fn is_playable(&self) -> bool {
+        self.possible(&self.subsets)
     }
 }
 
@@ -33,9 +67,9 @@ impl Bag {
         bag
     }
 
-    fn contains_all(&self, subsets: Vec<Cube>) -> bool {
-        if (subsets.is_empty()) {
-            return false
+    fn contains_all(&self, subsets: &Vec<Cube>) -> bool {
+        if subsets.is_empty() {
+            return false;
         }
 
         let mut map = HashMap::new();
@@ -56,7 +90,7 @@ impl Bag {
 }
 
 
-struct Cube(Color, usize);
+pub struct Cube(Color, usize);
 
 impl Cube {
     fn new(amount: usize, color: Color) -> Self {
@@ -70,6 +104,17 @@ enum Color {
     Red,
     Green,
     Blue,
+}
+
+impl Color {
+    fn from(str: &str) -> Self {
+        match str {
+            "red" => Red,
+            "blue" => Blue,
+            "green" => Green,
+            _ => panic!("Unknown color {}", str)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -87,15 +132,9 @@ mod tests {
 
         let bag = Bag::with_cubes(configuration_cubes);
 
+        let game = Game::parse(&bag, "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green");
 
-        assert_eq!(Game::possible(&bag, Vec::from([
-            Cube::new(3, Blue),
-            Cube::new(4, Red),
-            Cube::new(1, Red),
-            Cube::new(2, Green),
-            Cube::new(6, Blue),
-            Cube::new(2, Green)
-        ])), true)
+        assert_eq!(game.is_playable(), true)
     }
 
     #[test]
@@ -106,19 +145,11 @@ mod tests {
             Cube::new(14, Blue)
         ]);
 
-        let subsets = Vec::from([
-            Cube::new(1, Blue),
-            Cube::new(2, Green),
-            Cube::new(3, Green),
-            Cube::new(4, Blue),
-            Cube::new(1, Red),
-            Cube::new(1, Green),
-            Cube::new(1, Blue)
-        ]);
-
         let bag = Bag::with_cubes(configuration_cubes);
 
-        assert_eq!(Game::possible(&bag, subsets), true)
+        let game = Game::parse(&bag, "Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue");
+
+        assert_eq!(game.is_playable(), true)
     }
 
     #[test]
@@ -129,21 +160,11 @@ mod tests {
             Cube::new(14, Blue)
         ]);
 
-        let subsets = Vec::from([
-            Cube::new(8, Green),
-            Cube::new(6, Blue),
-            Cube::new(20, Red),
-            Cube::new(5, Blue),
-            Cube::new(4, Red),
-            Cube::new(13, Green),
-            Cube::new(5, Green),
-            Cube::new(1, Red)
-        ]);
-
         let bag = Bag::with_cubes(configuration_cubes);
 
-        assert_eq!(Game::possible(&bag, subsets), false)
+        let game = Game::parse(&bag, "Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red");
 
+        assert_eq!(game.is_playable(), false)
     }
 
     #[test]
@@ -154,20 +175,11 @@ mod tests {
             Cube::new(14, Blue)
         ]);
 
-        let subsets = Vec::from([
-            Cube::new(1, Green),
-            Cube::new(3, Red),
-            Cube::new(6, Blue),
-            Cube::new(3, Green),
-            Cube::new(6, Red),
-            Cube::new(3, Green),
-            Cube::new(15, Blue),
-            Cube::new(14, Red)
-        ]);
-
         let bag = Bag::with_cubes(configuration_cubes);
 
-        assert_eq!(Game::possible(&bag, subsets), false)
+        let game = Game::parse(&bag, "Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red");
+
+        assert_eq!(game.is_playable(), false)
     }
 
     #[test]
@@ -178,19 +190,11 @@ mod tests {
             Cube::new(14, Blue)
         ]);
 
-        let subsets = Vec::from([
-            Cube::new(6, Red),
-            Cube::new(1, Blue),
-            Cube::new(3, Green),
-            Cube::new(2, Blue),
-            Cube::new(1, Red),
-            Cube::new(2, Green)
-        ]);
-
         let bag = Bag::with_cubes(configuration_cubes);
 
-        assert_eq!(Game::possible(&bag, subsets), true)
-    }
+        let game = Game::parse(&bag, "Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green");
 
+        assert_eq!(game.is_playable(), true)
+    }
 }
 
