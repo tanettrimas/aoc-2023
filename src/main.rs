@@ -48,17 +48,20 @@ fn day2() -> io::Result<()> {
     let path = get_path(2);
     let file = File::open(path)?;
     let reader = BufReader::new(file);
-    let mut sum: i32 = 0;
+    let mut sum_of_ids: i32 = 0;
+    let mut sum_of_power: i64 = 0;
     reader.lines().for_each(|line_result| {
         let line = line_result.unwrap();
         let game = Game::parse(&bag, line);
         match game.is_playable() {
             true => {
-                sum += game.id as i32
+                sum_of_ids += game.id as i32
             }
             false => {}
         }
+        sum_of_power += game.fewest_cubes_power();
     });
-    println!("Possible games: {}", sum);
+    println!("Possible games: {}", sum_of_ids);
+    println!("Total power: {}", sum_of_power);
     Ok(())
 }
